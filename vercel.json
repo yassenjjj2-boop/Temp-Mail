@@ -8,6 +8,7 @@
       "memory": 128
     }
   },
+  "buildCommand": "echo 'No build step'",
   "routes": [
     { "src": "/", "dest": "/index.html" }
   ]
