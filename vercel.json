@@ -1,0 +1,15 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 10,
+      "memory": 128
+    }
+  },
+  "buildCommand": "echo 'No build step'",
+  "routes": [
+    { "src": "/", "dest": "/index.html" }
+  ]
+}

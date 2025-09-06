@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Temp Mail (Vercel)</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;max-width:840px;margin:40px auto;padding:0 16px;}
+    h1{font-size:28px;margin:0 0 16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0}
+    input,button{padding:10px 12px;font-size:14px}
+    code{background:#f4f4f5;padding:2px 6px;border-radius:6px}
+    .card{border:1px solid #e4e4e7;border-radius:12px;padding:16px;margin:12px 0}
+    .muted{color:#6b7280}
+    pre{white-space:pre-wrap;word-break:break-word;background:#0b1220;color:#e6edf3;padding:12px;border-radius:8px}
+    .list{display:grid;gap:8px}
+  </style>
+</head>
+<body>
+  <h1>Free Temp Mail on Vercel</h1>
+  <p class="muted">Create a temporary mailbox and read messages via serverless APIs. No database or secrets needed.</p>
+
+  <div class="card">
+    <h3>1) Create Mailbox</h3>
+    <div class="row">
+      <button id="createBtn">Create Mailbox</button>
+      <span id="createState" class="muted"></span>
+    </div>
+    <div id="mailboxInfo" style="display:none">
+      <div class="row"><strong>Mailbox:</strong><code id="mailbox"></code></div>
+      <div class="row"><strong>Token:</strong><code id="token"></code></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>2) Load Messages</h3>
+    <div class="row">
+      <input id="tokenInput" placeholder="Token" style="flex:1" />
+      <button id="loadBtn">Load</button>
+    </div>
+    <div id="messages" class="list"></div>
+  </div>
+
+  <div class="card">
+    <h3>3) Message</h3>
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+
+    $('#createBtn').onclick = async () => {
+      $('#createState').textContent = 'Creating…';
+      const r = await fetch('/api/mailbox', { method: 'POST' });
+      const data = await r.json();
+      if (!r.ok) { $('#createState').textContent = 'Error: ' + (data.error || r.status); return; }
+      $('#createState').textContent = '';
+      $('#mailboxInfo').style.display = 'block';
+      $('#mailbox').textContent = data.mailbox;
+      $('#token').textContent = data.token;
+      $('#tokenInput').value = data.token;
+    };
+
+    $('#loadBtn').onclick = async () => {
+      const token = $('#tokenInput').value.trim();
+      if (!token) return alert('Enter token');
+      const r = await fetch('/api/messages?token=' + encodeURIComponent(token));
+      const data = await r.json();
+      const list = $('#messages');
+      list.innerHTML = '';
+      if (!r.ok || data.errorMessage) { list.textContent = 'Failed to load messages'; return; }
+      (data.messages || []).forEach(m => {
+        const div = document.createElement('div');
+        div.style.border = '1px solid #e5e7eb';
+        div.style.padding = '8px';
+        div.style.borderRadius = '8px';
+        div.style.cursor = 'pointer';
+        div.innerHTML = `<div><strong>${m.subject || '(no subject)'}</strong></div>
+          <div class="muted">From: ${m.from}</div>
+          <div class="muted">Preview: ${m.bodyPreview || ''}</div>`;
+        div.onclick = async () => {
+          const rr = await fetch(`/api/message?id=${encodeURIComponent(m._id)}&token=${encodeURIComponent(token)}`);
+          const md = await rr.json();
+          $('#message').innerHTML = md.bodyHtml ? md.bodyHtml : `<pre>${JSON.stringify(md, null, 2)}</pre>`;
+        };
+        list.appendChild(div);
+      });
+    };
+  </script>
+</body>
+</html>
